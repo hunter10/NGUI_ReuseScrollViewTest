@@ -82,7 +82,10 @@ public class UIReuseScrollView : UIScrollView
         if (bUseGroup)
         {
             mGroupItemCount = (int)iCount / 2;
-            mGroupItemCount += 1;
+
+            if ((iCount % 2) != 0)
+                mGroupItemCount += 1;
+
             SetTemplate(mGroupItemCount, bUseGroup);    // Head, Tail 생성 및 설정
             ResizeBody(mGroupItemCount);      // Body 생성
         }
