@@ -8,6 +8,8 @@ public class TestCode : MonoBehaviour {
     public uint ItemCount;
     public uint PopIndex;
 
+    public bool bUseGroupItem = false;
+
     void Awake()
     {
         if( null == rsv )
@@ -17,11 +19,12 @@ public class TestCode : MonoBehaviour {
 
         PopIndex = 0;
     }
+
 	// Use this for initialization
 	void Start () {
         if( null != rsv )
         {
-            rsv.Init((int)ItemCount);
+            rsv.Init((int)ItemCount, bUseGroupItem);
         }
 	
 	}

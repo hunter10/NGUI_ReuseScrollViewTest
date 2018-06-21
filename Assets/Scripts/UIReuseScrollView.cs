@@ -15,6 +15,7 @@ public class UIReuseScrollView : UIScrollView
     protected GameObject mTail;         // ReuseScrollView의 Bounds값을 설정하기위해 필요 - 꼬리 (overflow체크에도 사용) 
     protected List<GameObject> mList;   // ReuseScrollView의 Body에 해당하는 부분. (화면 출력에 필요한 최소한의 GameObject를 만들어 준다.) - 재사용 게임오브젝트 리스트
     public GameObject mTemplateItem;    // ReuseScrollView의 리스트 아이템의 모양.
+    public GameObject mTemplateItemGroup;   // ReuseScrollView의 리스트 그룹 아이템의 모양.
     public Vector2 mItemSize;           // ReuseScrollView의 리스트 아이템의 크기. (가로=x, 세로=y)
     Vector3 mStartPos;                  // ReuseScrollView의 Bounds값의 시작위치.
 
@@ -23,9 +24,11 @@ public class UIReuseScrollView : UIScrollView
     int mPrvIndex = 0;                  // 이동에 따른 이전 인덱스 값을 저장한다. 
     int mMaxIndex = 0;                  // 최대 인덱스 값.
     int mItemCount = 0;                 // 아이템의 실제 갯수.
+    int mGroupItemCount = 0;            // 그룹아이템의 갯수.
     bool mInit = false;                 
 
     protected bool bReuseCalculatedBounds = false;  // ReuseScrollView는 ScrollView과 다른 타이밍에 Bounds값을 체크하기 위해 필요하다. 
+    private bool m_bUseGroup = false;
 
     // 기존의 ScrollView의 bounds값과 동일하다. 단지 업데이트 위치를 바꾸기 위해서 bReuseCalculatedBounds변수를 추가하여 사용한다.
     public override Bounds bounds
@@ -44,25 +47,53 @@ public class UIReuseScrollView : UIScrollView
     }
 
     // 처음올 ReuseScrollView의 아이템을 생성할때 사용. (List아이템을 삭제하여 새로 만들어 쓴다.) 
-    public void Init(int iCount)
+    public void Init(int iCount, bool bUseGroup = false)
     {
+        m_bUseGroup = bUseGroup;
+
         mItemCount = iCount;
+        if(bUseGroup)
+        {
+            mGroupItemCount = (int)iCount / 2;
+            mGroupItemCount += 1;
+        }
         DestroyBody();
-        SetTemplate(iCount);    
+
+        if (bUseGroup)
+            SetTemplate(mGroupItemCount, bUseGroup);
+        else
+            SetTemplate(iCount);
+
         mStartPos = mTrans.localPosition;
-        CreateBody(iCount);      
-        MovePosition();
+
+        if(bUseGroup)
+            CreateBody(mGroupItemCount, bUseGroup);
+        else
+            CreateBody(iCount);
+
+        MovePosition(m_bUseGroup);
         mInit = true;
     }
 
     // 재설정 (List아이템을 재사용한다.)
-    public void Refresh(int iCount)
+    public void Refresh(int iCount, bool bUseGroup = false)
     {
         mItemCount = iCount;
-        SetTemplate(iCount);    // Head, Tail 생성 및 설정
-        ResizeBody(iCount);      // Body 생성
+        if (bUseGroup)
+        {
+            mGroupItemCount = (int)iCount / 2;
+            mGroupItemCount += 1;
+            SetTemplate(mGroupItemCount, bUseGroup);    // Head, Tail 생성 및 설정
+            ResizeBody(mGroupItemCount);      // Body 생성
+        }
+        else
+        {
+            SetTemplate(iCount);    // Head, Tail 생성 및 설정
+            ResizeBody(iCount);      // Body 생성
+        }
+
         Rebound();
-        MovePosition();
+        MovePosition(bUseGroup);
     }
 
     /*
@@ -91,25 +122,41 @@ public class UIReuseScrollView : UIScrollView
     }
 
     // 설정된 아이템을 이용하여 머리와 꼬리위치를 구한다.
-    private void SetTemplate(int count)
+    private void SetTemplate(int count, bool bUseGroup = false)
     {
-        if (null == mTemplateItem) return;
+        if(bUseGroup)
+            if (null == mTemplateItemGroup) return;
+        else
+            if (null == mTemplateItem) return;
+
         if (mHead == null)
         {
-            mHead = NGUITools.AddChild(gameObject, mTemplateItem);
+            if (bUseGroup)
+                mHead = NGUITools.AddChild(gameObject, mTemplateItemGroup);
+            else
+                mHead = NGUITools.AddChild(gameObject, mTemplateItem);
+
             mHead.name = "Head";
         }
 
         if (mTail == null)
         {
-            mTail = NGUITools.AddChild(gameObject, mTemplateItem);
+            if (bUseGroup)
+                mTail = NGUITools.AddChild(gameObject, mTemplateItemGroup);
+            else
+                mTail = NGUITools.AddChild(gameObject, mTemplateItem);
+
             mTail.name = "Tail";
         }
 
         // 값이 없다면 아이템의 크기를 Prefab의 크기로 변환
         if( Vector2.zero == mItemSize )
         {
-            Transform tf = mTemplateItem.transform;
+            Transform tf;
+            if (bUseGroup)
+                tf = mTemplateItemGroup.transform;
+            else
+                tf = mTemplateItem.transform;
             Bounds b = NGUIMath.CalculateRelativeWidgetBounds(tf, tf);
             mItemSize.x = b.size.x;
             mItemSize.y = b.size.y;
@@ -136,9 +183,13 @@ public class UIReuseScrollView : UIScrollView
     }
 
     // 화면에 출력될 아이템을 생성한다. 
-    private void CreateBody(int iCount)
+    private void CreateBody(int iCount, bool bUseGroup = false)
     {
-        if (null == mTemplateItem) return;
+        if(bUseGroup)
+            if (null == mTemplateItemGroup) return;
+        else
+            if (null == mTemplateItem) return;
+
         float CellWidth = mItemSize.x;
         float CellHeight = mItemSize.y;
 
@@ -158,15 +209,44 @@ public class UIReuseScrollView : UIScrollView
 
             int iBuildCount = (iRemainder < 3 ? iCount : iMaxItem + 2);
 
-            for (int i = 0; i < iBuildCount; ++i)
+            if (bUseGroup)
             {
-                GameObject goTemp = NGUITools.AddChild(gameObject, mTemplateItem);
+                int tempTotalItemCount = 0;
+                // bUseGroupd일때는 iBuildCount는 생성할 그룹갯수
+                for (int i = 0; i < iBuildCount; ++i)
+                {
+                    // 2. 그룹아이템 하나 생성
+                    GameObject goTempGroup = NGUITools.AddChild(gameObject, mTemplateItemGroup);
 
-                Vector3 vPos = mHead.transform.localPosition;
-                vPos.y = vPos.y - (CellHeight * i);
-                goTemp.transform.localPosition = vPos;
+                    for (int j = 0; j < 2; j++)
+                    {
+                        if (tempTotalItemCount < mItemCount)
+                        {
+                            tempTotalItemCount++;
+                            goTempGroup.GetComponent<UIListItemGroup>().AddChild(mTemplateItem);
+                        }
+                    }
 
-                mList.Add(goTemp);
+                    Vector3 vPos = mHead.transform.localPosition;
+                    vPos.y = vPos.y - (CellHeight * i);
+                    goTempGroup.transform.localPosition = vPos;
+
+                    // 다중 배열일때 조심.
+                    mList.Add(goTempGroup);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < iBuildCount; ++i)
+                {
+                    GameObject goTemp = NGUITools.AddChild(gameObject, mTemplateItem);
+
+                    Vector3 vPos = mHead.transform.localPosition;
+                    vPos.y = vPos.y - (CellHeight * i);
+                    goTemp.transform.localPosition = vPos;
+
+                    mList.Add(goTemp);
+                }
             }
         }
         else
@@ -192,9 +272,13 @@ public class UIReuseScrollView : UIScrollView
     }
 
     // CreateBody는 객체를 생성만하지만 ResizeBody는 크기에 맞게 생성 및 삭제, 재사용한다.
-    private void ResizeBody( int iCount )
+    private void ResizeBody( int iCount, bool bUseGroup = false)
     {
-        if (null == mTemplateItem) return;
+        if(bUseGroup)
+            if (null == mTemplateItemGroup) return;
+        else
+            if (null == mTemplateItem) return;
+
         float CellWidth = mItemSize.x;
         float CellHeight = mItemSize.y;
 
@@ -344,12 +428,12 @@ public class UIReuseScrollView : UIScrollView
         if (mPrvIndex != mCurIndex)
         {
             mPrvIndex = mCurIndex;
-            MovePosition();
+            MovePosition(m_bUseGroup);
         }
     }
 
     // 현재의 인덱스 값에 맞춰서 화면에 보이는 인덱스의 위치를 조정한다.
-    private void MovePosition()
+    private void MovePosition(bool bUseGroup)
     {
         if (null == mList) return;
         if (null == mHead) return;
@@ -377,10 +461,20 @@ public class UIReuseScrollView : UIScrollView
 
                 mList[i].transform.localPosition = vPos;
 
-                // 리스트 아이템에 변경된 인덱스값을 보내준다. (iPos는 리스트의 아이템 실제 인덱스 값)
-                UIListItem item = mList[i].GetComponent<UIListItem>();
-                if (null != item)
-                    item.OnChangeItem(iPos);
+                if (bUseGroup)
+                {
+                    // 리스트 아이템에 변경된 인덱스값을 보내준다. (iPos는 리스트의 아이템 실제 인덱스 값)
+                    UIListItemGroup item = mList[i].GetComponent<UIListItemGroup>();
+                    if (null != item)
+                        item.OnChangeItem(iPos);
+                }
+                else
+                {
+                    // 리스트 아이템에 변경된 인덱스값을 보내준다. (iPos는 리스트의 아이템 실제 인덱스 값)
+                    UIListItem item = mList[i].GetComponent<UIListItem>();
+                    if (null != item)
+                        item.OnChangeItem(iPos);
+                }
             }
         }
         else
@@ -397,10 +491,20 @@ public class UIReuseScrollView : UIScrollView
 
                 mList[i].transform.localPosition = vPos;
 
-                // 리스트 아이템에 변경된 인덱스값을 보내준다. (iPos는 리스트의 아이템 실제 인덱스 값)
-                UIListItem item = mList[i].GetComponent<UIListItem>();
-                if (null != item)
-                    item.OnChangeItem(iPos);
+                if (bUseGroup)
+                {
+                    // 리스트 아이템에 변경된 인덱스값을 보내준다. (iPos는 리스트의 아이템 실제 인덱스 값)
+                    UIListItemGroup item = mList[i].GetComponent<UIListItemGroup>();
+                    if (null != item)
+                        item.OnChangeItem(iPos);
+                }
+                else
+                {
+                    // 리스트 아이템에 변경된 인덱스값을 보내준다. (iPos는 리스트의 아이템 실제 인덱스 값)
+                    UIListItem item = mList[i].GetComponent<UIListItem>();
+                    if (null != item)
+                        item.OnChangeItem(iPos);
+                }
             }
         }
     }
