@@ -9,7 +9,7 @@ public class UIListItemGroup : MonoBehaviour {
     private UIListItem mItem_L;
     private UIListItem mItem_R;
 
-
+    
     public void Awake()
     {
         mItem_L = null;
@@ -29,13 +29,26 @@ public class UIListItemGroup : MonoBehaviour {
     }
 
     // 필요함수 (인덱스가 변경될때 호출됩니다.)
-    public void OnChangeItem(int index)
+    public void OnChangeItem(int index, int nTotalItemCount)
     {
         if (mItem_L != null)
             mItem_L.OnChangeItem(index * 2);
 
-        if (mItem_R != null)
-            mItem_R.OnChangeItem((index * 2) + 1);
+        // 오른쪽은 이미 만들어져 있다면 재활용시 전체아이템 갯수보다 작다면 보이지 않아야 함.
+        int rightIndex = (index * 2) + 1;
+        if (rightIndex < nTotalItemCount)
+        {
+            if (mItem_R != null)
+            {
+                mItem_R.gameObject.SetActive(true);
+                mItem_R.OnChangeItem(rightIndex);
+            }
+        }
+        else
+        {
+            if (mItem_R != null)
+                mItem_R.gameObject.SetActive(false);
+        }
     }
 
     public bool IsFull()
@@ -43,6 +56,6 @@ public class UIListItemGroup : MonoBehaviour {
         if (mItem_L != null && mItem_R != null)
             return true;
 
-        return true;
+        return false;
     }
 }

@@ -55,7 +55,9 @@ public class UIReuseScrollView : UIScrollView
         if(bUseGroup)
         {
             mGroupItemCount = (int)iCount / 2;
-            mGroupItemCount += 1;
+
+            if ((iCount % 2) != 0)
+                mGroupItemCount += 1;
         }
         DestroyBody();
 
@@ -71,7 +73,7 @@ public class UIReuseScrollView : UIScrollView
         else
             CreateBody(iCount);
 
-        MovePosition(m_bUseGroup);
+        MovePosition(bUseGroup);
         mInit = true;
     }
 
@@ -87,7 +89,7 @@ public class UIReuseScrollView : UIScrollView
                 mGroupItemCount += 1;
 
             SetTemplate(mGroupItemCount, bUseGroup);    // Head, Tail 생성 및 설정
-            ResizeBody(mGroupItemCount);      // Body 생성
+            ResizeBody(mGroupItemCount, bUseGroup);     // Body 생성
         }
         else
         {
@@ -313,15 +315,39 @@ public class UIReuseScrollView : UIScrollView
                         Vector3 vPos = mHead.transform.localPosition;
                         vPos.y = vPos.y - (CellHeight * i);
                         mList[i].transform.localPosition = vPos;
+
+                        if (bUseGroup)
+                        {
+                            // 비어있는거 체크후 아이템 추가?
+                            if (!mList[i].GetComponent<UIListItemGroup>().IsFull())
+                            {
+                                mList[i].GetComponent<UIListItemGroup>().AddChild(mTemplateItem);
+                            }
+                        }
                     }
-                    // Add Item
+                    // 그룹아이템 추가 Add Item
                     else
                     {
-                        GameObject goTemp = NGUITools.AddChild(gameObject, mTemplateItem);
-                        Vector3 vPos = mHead.transform.localPosition;
-                        vPos.y = vPos.y - (CellHeight * i);
-                        goTemp.transform.localPosition = vPos;
-                        mList.Add(goTemp);
+                        if (bUseGroup)
+                        {
+                            GameObject goTempGroup = NGUITools.AddChild(gameObject, mTemplateItemGroup);
+
+                            goTempGroup.GetComponent<UIListItemGroup>().AddChild(mTemplateItem);
+
+                            Vector3 vPos = mHead.transform.localPosition;
+                            vPos.y = vPos.y - (CellHeight * i);
+                            goTempGroup.transform.localPosition = vPos;
+                            mList.Add(goTempGroup);
+                        }
+                        else
+                        {
+
+                            GameObject goTemp = NGUITools.AddChild(gameObject, mTemplateItem);
+                            Vector3 vPos = mHead.transform.localPosition;
+                            vPos.y = vPos.y - (CellHeight * i);
+                            goTemp.transform.localPosition = vPos;
+                            mList.Add(goTemp);
+                        }
                     }
                 }
                 // 초과
@@ -469,7 +495,7 @@ public class UIReuseScrollView : UIScrollView
                     // 리스트 아이템에 변경된 인덱스값을 보내준다. (iPos는 리스트의 아이템 실제 인덱스 값)
                     UIListItemGroup item = mList[i].GetComponent<UIListItemGroup>();
                     if (null != item)
-                        item.OnChangeItem(iPos);
+                        item.OnChangeItem(iPos, mItemCount);
                 }
                 else
                 {
@@ -499,7 +525,7 @@ public class UIReuseScrollView : UIScrollView
                     // 리스트 아이템에 변경된 인덱스값을 보내준다. (iPos는 리스트의 아이템 실제 인덱스 값)
                     UIListItemGroup item = mList[i].GetComponent<UIListItemGroup>();
                     if (null != item)
-                        item.OnChangeItem(iPos);
+                        item.OnChangeItem(iPos, mItemCount);
                 }
                 else
                 {
@@ -530,11 +556,11 @@ public class UIReuseScrollView : UIScrollView
     {
         if( null != mList && mInit )
         {
-            Refresh(mItemCount+1);
+            Refresh(mItemCount+1, m_bUseGroup);
         }
         else
         {
-            Init(mItemCount+1);
+            Init(mItemCount+1, m_bUseGroup);
         }
     }
 
