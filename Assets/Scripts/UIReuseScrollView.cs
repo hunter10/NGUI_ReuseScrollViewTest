@@ -274,6 +274,73 @@ public class UIReuseScrollView : UIScrollView
                 mList.Add(goTemp);
             }
         }
+
+        // 그룹모드일때
+        // mList 관련 정렬 처리는 현재 없는 상태
+
+        // C# Linq 못쓰는 상태일때
+        /*
+        for (int i = 0; i < recList.Count; ++i)
+        {
+            ClubHomeRoomInfo roomInfo = new ClubHomeRoomInfo(BUTTTYPE.LISTITEM);
+
+            ...
+            roomInfo.bigBlind = recList[i].bigBlind;
+            roomInfo.createTime = recList[i].createTime;
+            ...
+            mDataList.Add(roomInfo);
+        }
+        */
+
+        /*
+        // 최근에 만들어진 순서대로 정렬(틱값이 큰 순서대로)
+        mDataList.Sort(delegate (ClubHomeRoomInfo A, ClubHomeRoomInfo B)
+        {
+            if (A.createTime < B.createTime) return 1;
+            else if (A.createTime > B.createTime) return -1;
+            return 0;
+        });
+
+        // 블라인드 높은 순서대로 정렬
+        mDataList.Sort(delegate (ClubHomeRoomInfo A, ClubHomeRoomInfo B)
+        {
+            if (A.bigBlind < B.bigBlind) return 1;
+            else if (A.bigBlind > B.bigBlind) return -1;
+            return 0;
+        });
+        */
+
+        /*
+        // C# Linq를 쓸수 있는 상태일때
+        public void ClickGradeSortButt()
+        {
+            //Debug.Log("등급 정렬 클릭!");
+            // 빈슬롯인지, 신규중인지, 배치중인지, exp몬스터인지, 버튼타입순(레벨 오름차순), 인덱스순
+            m_sEtcInfo.m_lbLvSort_ButtTitle.color = Color.white;
+            m_sEtcInfo.m_lbGradeSort_ButtTitle.color = Color.black;
+            m_ScrollitemList = m_ScrollitemList.OrderByDescending(x => x.m_bySlotIndex < byte.MaxValue).
+                                                    ThenByDescending(x => x.m_bNew == true).
+                                                    ThenByDescending(x => x.m_bIsUsing == true).
+                                                    ThenByDescending(x => x.m_bExpMon == false).
+                                                    ThenByDescending(x => x.m_byGrade).
+                                                    ThenByDescending(x => x.m_byLevel).ToList();
+
+            foreach (MonHouse_ScrollViewItem item in m_ScrollitemList)
+            {
+                item.gameObject.transform.parent = m_Grid.gameObject.transform;
+                item.gameObject.transform.localPosition = Vector3.zero;
+                item.gameObject.transform.localScale = Vector3.one;
+            }
+
+
+            m_Grid.Reposition();
+            m_ScrollView.ResetPosition();
+
+            // 이 루틴이 있으면 스크롤바 내려간 상태에서 정렬버튼 눌렀을때 정렬이 안되는 문제 발생
+            //m_ScrollBar.sliderValue = 0.01f;
+            //StartCoroutine(fewMove());
+        }
+        */
     }
 
     // CreateBody는 객체를 생성만하지만 ResizeBody는 크기에 맞게 생성 및 삭제, 재사용한다.
@@ -418,6 +485,9 @@ public class UIReuseScrollView : UIScrollView
                 mList.Add(goTemp);
             }*/
         }
+
+        // 그룹모드일때
+        // mList 관련 정렬 처리는 현재 없는 상태
     }
 
     // 리스트를 초기화 한다.
